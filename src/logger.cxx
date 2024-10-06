@@ -33,7 +33,6 @@ namespace simple_logger
         return "";
     }
 
-
     constexpr std::string get_color(log_type type)
     {
 #if defined(__APPLE__) || defined(__linux__)
@@ -59,11 +58,16 @@ namespace simple_logger
     };
 
     log_type g_log_level = log_type::debug;
-    std::ofstream g_out_file("test.log");
+    std::ofstream g_out_file;
 
     /// @brief log with less importance will be ignored
     /// @param new_level new minimum log level
     export void set_log_level(log_type new_level) { g_log_level = new_level; }
+
+    export void set_log_file_path(const std::string& path)
+    {
+        g_out_file = std::ofstream(path);
+    }
 
     export template<typename... Args>
     void log(log_type type, format_location_wrapper<std::format_string<Args...>> fmt_wrapper, Args &&... args)
@@ -71,7 +75,8 @@ namespace simple_logger
         if(type < g_log_level) return;
         const auto& loc = fmt_wrapper.get_source_location();
         const auto& fmt = fmt_wrapper.get_format_string();
-        const auto msg = std::format("{}:{} [{}] ", loc.file_name(), loc.line(), get_type_name(type));
+        std::chrono::system_clock::time_point system_now(std::chrono::system_clock::now());
+        const auto msg = std::format("[{}] {}:{} [{}] ", system_now, loc.file_name(), loc.line(), get_type_name(type));
         std::cout << get_color(type) + msg + std::vformat(fmt.get(), std::make_format_args(args...)) + '\n';
         if(g_out_file)
             g_out_file << msg + std::vformat(fmt.get(), std::make_format_args(args...)) + '\n';
